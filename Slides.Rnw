@@ -118,18 +118,24 @@ Iowa State University \\ % Your institution for the title page
 \begin{frame}
 \begin{itemize}
 \item GPU: Graphics Processing Unit
-\item Chips/Processors similar to a CPU
-\item Difference is in structure
-\item GPU has a structure that is made for parrellelization
+\item Chips/Processors similar to a CPU but they specialize in graphics
+\item First appeared in arcade games
+\item Motivation is still the same
 \end{itemize}
 \end{frame}
 
 %------------------------------------------------
 
-
-
-
-
+\begin{frame}
+\begin{itemize}
+\item What's the difference from a CPU?
+\item Difference is in structure
+\item GPU has a structure that is made for parrellelization
+\end{itemize}
+\begin{center}
+\includegraphics[height=0.4\textheight]{cpu-and-gpu.jpg}
+\end{center}
+\end{frame}
 
 
 
