@@ -76,7 +76,7 @@
 %\setbeamertemplate{navigation symbols}{} % To remove the navigation symbols from the bottom of all slides uncomment this line
 }
 
-\usepackage{graphicx} % Allows including images
+\usepackage{graphicx, copyrightbox}
 \usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
 
 %----------------------------------------------------------------------------------------
@@ -85,12 +85,12 @@
 
 \title[Stat 606]{Approximate Gaussian Process Regression Using Parrallel Processing} % The short title appears at the bottom of every slide, the full title is only on the title page
 
-\author{Nehemias} % Your name
+\author{Nehemias Ulloa} % Your name
 \institute[ISU] % Your institution as it will appear on the bottom of every slide, may be shorthand to save space
 {
 Iowa State University \\ % Your institution for the title page
 \medskip
-\textit{nulloa1@iastate.edu} % Your email address
+\textit{} % Your email address
 }
 \date{\today} % Date, can be changed to a custom date
 
@@ -113,14 +113,12 @@ Iowa State University \\ % Your institution for the title page
 \section{GPU} % Sections can be created in order to organize your presentation into discrete blocks, all sections and subsections are automatically printed in the table of contents as an overview of the talk
 %------------------------------------------------
 
-\subsection{What is a GPU?} % A subsection can be created just before a set of slides with a common theme to further break down your presentation into chunks
-
 \begin{frame}
 \begin{itemize}
 \item GPU: Graphics Processing Unit
 \item Chips/Processors similar to a CPU but they specialize in graphics
 \item First appeared in arcade games
-\item Motivation is still the same
+\item Motivation is largely still the same
 \end{itemize}
 \end{frame}
 
@@ -132,10 +130,78 @@ Iowa State University \\ % Your institution for the title page
 \item Difference is in structure
 \item GPU has a structure that is made for parrellelization
 \end{itemize}
+
+
+%\copyrightbox[r]{\includegraphics[height=0.4\textheight]{cpu-and-gpu.jpg}}{Source: NVIDIA}
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+\begin{itemize}
+\item Most common way to use a GPU is by using NVIDIA's \verb|CUDA| programming model 
+\item Send work to the GPU using a {\it kernal} function
+\item To write a good kernal function, need to understand the architecture of the GPU. \\
+\end{itemize}
+
+Here are the big components of the architecture:
+\begin{itemize}
+\item Threads - Smallest unit that executes a command 
+\item Blocks - Group of 1024 threads per block
+\item Kernal Grid - Group of 65,533 Blocks where a kernal fn is invoked 
+\item Warp - Groups of threads in a block that simmultaneously execute a command
+\item Streaming Multiprocessor(SM) - Wraps for the same block are same SM aka actually runs the CUDA kernals
+\end{itemize}
+\end{frame}
+
+%------------------------------------------------
+
+%\begin{frame}[fragile]
+%\begin{center}
+%\copyrightbox{\includegraphics[height=0.7\textheight]{cudasoftware.png}}{Source:NVIDIA CUDA Compute Unified Device Architecture Programming Guide Version 1.1}
+%\end{center}
+%\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}
+We would like to run as many blocks as possible on the SM but that depends on two constraints:
+\begin{itemize}
+\item Amount of memory - Different for each card
+\item Number of registers required by each thread - We have some control \\
+\end{itemize}
+
+Ultimately the number of SMs and blocks per SM is defined by the hardware of the GPU. In the paper's example their card had 16 SMs and allowed multiple blocks per SM. \\
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}
+Memory types and locations: \\
+
+\begin{table}
+\begin{tabular}{l | c | c}
+\hline
+Type         & Access   & Size  \\
+\hline
+Thread/Local & Thread   & Small \\
+Shared       & Block    & 48 KB \\
+Global       & Everyone & 5 GB   \\
+\hline
+\end{tabular}
+\end{table}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
 \begin{center}
-\includegraphics[height=0.4\textheight]{cpu-and-gpu.jpg}
+\copyrightbox{\includegraphics[height=0.7\textheight]{gpumemory.png}}{Source:NVIDIA CUDA Compute Unified Device Architecture Programming Guide Version 1.1}
 \end{center}
 \end{frame}
+
+
 
 
 
