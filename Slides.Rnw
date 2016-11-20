@@ -24,7 +24,7 @@
 % of all the themes, uncomment each in turn to see what they look like.
 
 %\usetheme{default}
-%\usetheme{AnnArbor}
+\usetheme{AnnArbor}
 %\usetheme{Antibes}
 %\usetheme{Bergen}
 %\usetheme{Berkeley}
@@ -40,7 +40,7 @@
 %\usetheme{Ilmenau}
 %\usetheme{JuanLesPins}
 %\usetheme{Luebeck}
-\usetheme{Madrid}
+%\usetheme{Madrid}
 %\usetheme{Malmoe}
 %\usetheme{Marburg}
 %\usetheme{Montpellier}
@@ -56,7 +56,7 @@
 % changes the colors of your current slide theme.
 
 %\usecolortheme{albatross}
-%\usecolortheme{beaver}
+\usecolortheme{beaver}
 %\usecolortheme{beetle}
 %\usecolortheme{crane}
 %\usecolortheme{dolphin}
