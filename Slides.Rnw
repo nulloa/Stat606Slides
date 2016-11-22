@@ -76,7 +76,7 @@
 %\setbeamertemplate{navigation symbols}{} % To remove the navigation symbols from the bottom of all slides uncomment this line
 }
 
-\usepackage{graphicx, copyrightbox}
+\usepackage{graphicx, copyrightbox, bm, amsmath}
 \usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
 
 %----------------------------------------------------------------------------------------
@@ -110,7 +110,7 @@ Iowa State University \\ % Your institution for the title page
 %----------------------------------------------------------------------------------------
 
 %------------------------------------------------
-\section{GPU} % Sections can be created in order to organize your presentation into discrete blocks, all sections and subsections are automatically printed in the table of contents as an overview of the talk
+\section{GPU}
 %------------------------------------------------
 
 \begin{frame}
@@ -156,11 +156,11 @@ Here are the big components of the architecture:
 
 %------------------------------------------------
 
-%\begin{frame}[fragile]
-%\begin{center}
-%\copyrightbox{\includegraphics[height=0.7\textheight]{cudasoftware.png}}{Source:NVIDIA CUDA Compute Unified Device Architecture Programming Guide Version 1.1}
-%\end{center}
-%\end{frame}
+\begin{frame}[fragile]
+\begin{center}
+\copyrightbox{\includegraphics[height=0.7\textheight]{cudasoftware.png}}{Source:NVIDIA CUDA Compute Unified Device Architecture Programming Guide Version 1.1}
+\end{center}
+\end{frame}
 
 %------------------------------------------------
 
@@ -201,8 +201,167 @@ Global       & Everyone & 5 GB   \\
 \end{center}
 \end{frame}
 
+%------------------------------------------------
 
 
+%------------------------------------------------
+\section{Examples}
+%------------------------------------------------
+
+
+%------------------------------------------------
+\subsection{Block Composite Likelihood}
+%------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+%------------------------------------------------
+\subsection{Gaussian Process Regression}
+%------------------------------------------------
+
+\begin{frame}[fragile]
+
+{\bf Def:} Gaussian process a group of random variables where any
+subset of them have a joint Gaussian distribution
+\begin{itemize}
+\item Extend multivariate Gaussian distributions to infinite dimensionality e.g. $\bm{y} =  \{ y_1 , \ldots , y_n \}$ as a single point from a $n$-dim Multivariate Normal
+\item Fully defined by a mean function and a covariance function
+\item GP Regression is often used in computer emulation i.e. a distribution $Y(x)|D_N$ for new $x$ given simulated data $D_N$ $(p(y(x)|D_N, K_\theta))$
+\end{itemize}
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+We typically assume that the mean function is zero, but there are multiple options for the covariance function. Some popular options are:
+\begin{itemize}
+\item Squared exponential
+\item Matern
+\item Noise (i.e. White noise - flat spectrum)
+\end{itemize}
+
+The papers used an isotropic Gaussian correlation structure:
+
+$K_{\theta, \eta}(x,x') = exp\{ -\parallel x-x' \parallel ^2 / \theta \}$ \\
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+\begin{itemize}
+\item Problem is that computations are at $O(N^3)$ 
+\item One of the most common ways to handle this is to use sparsity
+\item Gramacy and Apley(2014) sparsity scheme for accurate and fast predictions
+\end{itemize}
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+Here is the intuition behind the scheme:
+
+\begin{itemize}
+\item Focus on the prediction problem at some $x$
+\item Data far away from prediction point won't have much influence
+\item Use a subdesign $D_n(x) \equiv D_n(X_n(x))$
+\item Most common option is Nearest Neighbors(NN), but it has issues
+\item A criteria that cycles through possible $D_n(x)$ until optimal is found
+\item This is done with no extra computational cost compared to NN
+\end{itemize}
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+
+We get the criterion(ALC) by minimizing the Emperical Bayes mean-square prediction error (MSPE): \\
+\begin{align}
+ J(x_{j+1}, x) = E \{ [ Y(x) - \mu_{j+1}(x|D_{j+1}, \hat{\theta}_{j+1}) ] ^2| D_{j}(x) \} \label{eq:4}
+\end{align}  
+where $j < n$ and $\hat{\theta}_{j+1}$ is the est of $\theta$ on $D_{j+1}$ \\
+
+\begin{align}
+J(x_{j+1}, x) \approx V_{j}(x|x_{j+1}, \hat{\theta}_{j}) + \left( \frac{\delta \mu_{j}(x;\theta)}{\delta \theta} \Big|_{\theta = \hat{\theta}_j} \right) ^2 / G_{j+1}(\hat{\theta}_j)
+\end{align}
+\begin{multline}
+V_j(x|x_{j+1};\theta) = \frac{(j+1)\psi_j}{j(j-1)}\upsilon_{j+1}(x_j; \theta) \\
+\text{where } \upsilon_{j+1}(x_j; \theta) = \big[ K_{j+1}(x,x) - k^{T}_{j+1}(x)K^{-1}_{j+1}k^{T}_{j+1}(x) \big]
+\end{multline}
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+The first part of the Eq \ref{eq:4} estimates the predictive variance at $x$ after we include $x_{j+1}$ in the design and the second part estimates the rate of change in the predictive mean at $x$ weighted by the expectation of the future inverse information after $x_{j+1}$ and $y_{j+1}$ are added to the design. \\
+
+Actually, minimizing the first term of Eq \ref{eq:4} is the same as minimizing all of Eq \ref{eq:4}. So we just need to maximize:
+\begin{align}
+\upsilon_{j}(x; \theta) - \upsilon_{j+1}(x; \theta)
+\end{align}
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+Putting it all together, we get this algorithm:
+\begin{enumerate}
+\item Choose starting global $\theta_x = \theta_0$ for all x
+\item Calculate local design $X_n(x, \theta_x)$ based on ALC, for each x (independently)
+ \begin{enumerate}[(a)]
+ \item Choose NN design, $X_{n_0}(x)$ of size $n_0$
+ \item For $j = n_0,\ldots,n-1$, set
+ \begin{align*}
+ x_{j+1} = \text{arg } \max\limits_{x_{j+1} \in X_N \backslash X_j(x)} \upsilon_{j}(x; \theta) - \upsilon_{j+1}(x; \theta),\\
+ \text{then update } D_{j+1}(x,\theta_x) = D_j(x,\theta_x) \cup (x_{j+1}, y(x_{j+1}))
+ \end{align*}
+ \end{enumerate}
+\item Independently, calculate $\hat{\theta}_n(x)|D_n(x,\theta_x$. Set $\theta_x = \hat{\theta}_n(x)$
+\item Repeat steps 2-3
+\item Output predictions $Y(x)|D_n(x,\theta_x)$
+\end{enumerate}
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+From the algorithm outline, we can see that step 2.b. is the hardest to compute. This is where using the GPU comes in! \\
+
+Note that each candidate's($x_{j+1}$) calculations can computed independent of each other. This allows us to give each block it's own candidate. From there we give $j$ threads their own sequence of calculations.
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+Here are some sample results.\\
+
+\begin{figure}[h]
+\centering
+\includegraphics[height=0.65\textheight]{gpucpucompare.png}
+\caption{This graphics compares CPU-only $\&$ GPU-only times for ALC calculations at $n_{cand}=60000$ ($\sim$ max number of blocks) candidate locations while changing $n$ (sample size).}
+\end{figure}
+\end{frame}
+
+
+
+
+
+%------------------------------------------------
+\subsection{Using own GPU}
+%------------------------------------------------
+
+\begin{frame}[fragile]
+The writers of the last paper created a \verb|R| package \verb|laGP| in order to easily implement the CUDA, C, and R subroutines.
+
+\end{frame}
 
 
 
