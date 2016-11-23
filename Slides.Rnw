@@ -78,7 +78,14 @@
 
 \usepackage{graphicx, copyrightbox, bm, amsmath}
 \usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
-
+\makeatletter
+\newsavebox{\mybox}\newsavebox{\mysim}
+\newcommand{\distras}[1]{%
+  \savebox{\mybox}{\hbox{\kern3pt$\scriptstyle#1$\kern3pt}}%
+  \savebox{\mysim}{\hbox{$\sim$}}%
+  \mathbin{\overset{#1}{\kern\z@\resizebox{\wd\mybox}{\ht\mysim}{$\sim$}}}%
+}
+\makeatother
 %----------------------------------------------------------------------------------------
 %	TITLE PAGE
 %----------------------------------------------------------------------------------------
@@ -204,23 +211,125 @@ Global       & Everyone & 5 GB   \\
 %------------------------------------------------
 
 
+
+
+
+
+
+
 %------------------------------------------------
 \section{Examples}
 %------------------------------------------------
 
 
 %------------------------------------------------
-\subsection{Block Composite Likelihood}
+\subsection{Spatial Models with Block Composite Likelihood}
 %------------------------------------------------
 
+\begin{frame}[fragile]
 
+Geostatistical model:
+\begin{align}
+Y(\bm{s}) = \bm{x}^t(\bm{s})\bm{\beta} + w(\bm{s}) + \epsilon(\bm{s})
+\end{align}
 
+where 
+\begin{itemize}
+\item $\bm{s} \in \bm{D}  \subseteq \Re^d$ are spatial locations in 2 or 3 dim space \\
+\item $Y(\bm{s})$ Guassian response variable \\
+\item $\bm{x}^t(\bm{s})$ is a vector of explanatory variables \\
+\item $\epsilon(\bm{s}) \distras{ind} N(0, \tau^2)$ \\
+\item $w(\bm{s})$ provides the structural dependence i.e. the covariance structure
+\end{itemize}
 
+\end{frame}
 
+%------------------------------------------------
 
+\begin{frame}[fragile]
+Consider the data at $n$ loacations then we can consider our model like this:
+\begin{gather*}
+\bm{Y} \sim N(\bm{X\beta},\Sigma) \\
+\text{where } \Sigma = \Sigma(\bm{\theta}) = \bm{C} + \tau^2 \bm{I}_n \\
+\text{and } C(i,j) = cov(w(\bm{s}_i),w(\bm{s}_j))
+\end{gather*}
 
+Then we can consider the log-likelihood as:
+\begin{align}
+\ell (\bm{Y;\beta,\theta}) = -\frac{1}{2}log|\sigma| - \frac{1}{2}(\bm{Y} - \bm{X\beta})^{t}\Sigma^{-1}(\bm{Y} - \bm{X\beta})
+\end{align}
 
+\end{frame}
 
+%------------------------------------------------
+
+\begin{frame}[fragile]
+
+As usual, the most computationally intensive parts will deal with computing $|\Sigma|$ and $\Sigma^{-1}$. One way to handle this is a composite likelihood based on pairwise data differences. \\
+
+This is a natural compromise for geostatistical models; the blocks allow us a good tradeoff between computational and statistical efficiency. \\ 
+
+The basic idea is to split $D$ into $M$ blocks where $\bigcup_k D_k = D$ and $D_k \bigcap D_l = \emptyset$. 
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}
+We can get the likelihood to look like: 
+
+\begin{equation} \label{eq1}
+\begin{split}
+\ell(\bm{Y};\bm{\beta},\bm{\theta}) & = \sum_{k=1}^{M-1} \sum_{l>k} \ell(\bm{Y}_;\bm{\beta},\bm{\theta}) \\
+                                    & = \sum_{k=1}^{M-1} \sum_{l>k} \big[ -\frac{1}{2}\log|\Sigma_{kl}| -\frac{1}{2}(\bm{Y_{kl}} - \bm{X_{kl}\beta})^{t}\Sigma^{-1}_{kl}(\bm{Y_{kl}} - \bm{X_{kl}\beta}) \big]
+\end{split}
+\end{equation}
+
+where
+\begin{itemize}
+\item $\bm{Y}_k = \{ Y(\bm(s)_i):\bm(s)_i \in D_k \}$
+\item $\bm{Y}_{kl} = (\bm{Y}^t_k, \bm{Y}^t_l)^t$
+\item $\bm{X}_{kl} = (\bm{X}^t_k, \bm{X}^t_l)^t$
+\item $\bm{\Sigma}_{kl} = $\[
+\begin{bmatrix}
+    \bm{\Sigma}_{kl}(1,1)  & \bm{\Sigma}_{kl}(1,2) \\
+    \bm{\Sigma}_{kl}(2,1)  & \bm{\Sigma}_{kl}(2,2)
+\end{bmatrix}
+\]
+\end{itemize}
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+In order for this to work well we need to choose blocks carefully. The goal is to minimize the correlation between observations not in a block-pair and maximize the number of blocks simultaneously. \\
+
+Here are some ideas:
+\begin{itemize}
+\item Block widths equal to the effective spatial range
+\item If interested in computation, use equally numbered blocks
+\item Block according to spatial dependence
+\end{itemize}
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+Computationally, the Block Composite Likelihood complexity is of $O(n)$.\\
+
+The limit on memory is not an issue since the CL, score, and Hessian calculations are summations over independent calculations for each pair. Since these are independent calculations, they can be parrallelized. 
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+Here are some sample results.\\
+
+\begin{figure}[h]
+\centering
+\includegraphics[height=0.65\textheight]{gpucpucomparepap1.png}
+\caption{This graphics compares CPU-only $\&$ GPU-only times for ALC calculations at $n_{cand}=60000$ ($\sim$ max number of blocks) candidate locations while changing $n$ (sample size).}
+\end{figure}
+\end{frame}
 
 
 %------------------------------------------------
