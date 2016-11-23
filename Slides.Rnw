@@ -326,7 +326,7 @@ Here are some sample results.\\
 
 \begin{figure}[h]
 \centering
-\includegraphics[height=0.65\textheight]{gpucpucomparepap1.png}
+\includegraphics[height=0.40\textheight]{gpucpucomparepap1.png}
 \caption{This graphics compares CPU-only $\&$ GPU-only times for ALC calculations at $n_{cand}=60000$ ($\sim$ max number of blocks) candidate locations while changing $n$ (sample size).}
 \end{figure}
 \end{frame}
@@ -454,7 +454,7 @@ Here are some sample results.\\
 
 \begin{figure}[h]
 \centering
-\includegraphics[height=0.65\textheight]{gpucpucompare.png}
+\includegraphics[height=0.65\textheight]{gpucpucomparepap2.png}
 \caption{This graphics compares CPU-only $\&$ GPU-only times for ALC calculations at $n_{cand}=60000$ ($\sim$ max number of blocks) candidate locations while changing $n$ (sample size).}
 \end{figure}
 \end{frame}
