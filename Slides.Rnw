@@ -90,7 +90,7 @@
 %	TITLE PAGE
 %----------------------------------------------------------------------------------------
 
-\title[Stat 606]{Approximate Gaussian Process Regression Using Parrallel Processing} % The short title appears at the bottom of every slide, the full title is only on the title page
+\title[Stat 606]{GPU usage in Spatial Models} % The short title appears at the bottom of every slide, the full title is only on the title page
 
 \author{Nehemias Ulloa} % Your name
 \institute[ISU] % Your institution as it will appear on the bottom of every slide, may be shorthand to save space
@@ -136,10 +136,11 @@ Iowa State University \\ % Your institution for the title page
 \item What's the difference from a CPU?
 \item Difference is in structure
 \item GPU has a structure that is made for parrellelization
+\item ``GPUs are optimized for taking huge batches of data and performing the same operation over and over very quickly, unlike PC microprocessors, which tend to skip all over the place'' - Nathan Brookwood
 \end{itemize}
 
 
-%\copyrightbox[r]{\includegraphics[height=0.4\textheight]{cpu-and-gpu.jpg}}{Source: NVIDIA}
+\copyrightbox[r]{\includegraphics[height=0.5\textheight]{gputech_f2.png}}{Source: NVIDIA}
 \end{frame}
 
 %------------------------------------------------
@@ -148,9 +149,13 @@ Iowa State University \\ % Your institution for the title page
 \begin{itemize}
 \item Most common way to use a GPU is by using NVIDIA's \verb|CUDA| programming model 
 \item Send work to the GPU using a {\it kernal} function
-\item To write a good kernal function, need to understand the architecture of the GPU. \\
+\item To write a good kernal function, need to understand the architecture of the GPU. 
 \end{itemize}
+\end{frame}
 
+%------------------------------------------------
+
+\begin{frame}[fragile]
 Here are the big components of the architecture:
 \begin{itemize}
 \item Threads - Smallest unit that executes a command 
@@ -175,7 +180,7 @@ Here are the big components of the architecture:
 We would like to run as many blocks as possible on the SM but that depends on two constraints:
 \begin{itemize}
 \item Amount of memory - Different for each card
-\item Number of registers required by each thread - We have some control \\
+\item Number of registers required by each thread - We have some control \\~\\
 \end{itemize}
 
 Ultimately the number of SMs and blocks per SM is defined by the hardware of the GPU. In the paper's example their card had 16 SMs and allowed multiple blocks per SM. \\
@@ -264,12 +269,13 @@ Then we can consider the log-likelihood as:
 %------------------------------------------------
 
 \begin{frame}[fragile]
+\begin{itemize}
+\item As usual, the most computationally intensive parts will deal with computing $|\Sigma|$ and $\Sigma^{-1}$. One way to handle this is a composite likelihood based on pairwise data differences
 
-As usual, the most computationally intensive parts will deal with computing $|\Sigma|$ and $\Sigma^{-1}$. One way to handle this is a composite likelihood based on pairwise data differences. \\
+\item This is a natural compromise for geostatistical models; the blocks allow us a good tradeoff between computational and statistical efficiency
 
-This is a natural compromise for geostatistical models; the blocks allow us a good tradeoff between computational and statistical efficiency. \\ 
-
-The basic idea is to split $D$ into $M$ blocks where $\bigcup_k D_k = D$ and $D_k \bigcap D_l = \emptyset$. 
+\item The basic idea is to split our sample space ($D$) into $M$ blocks where $\bigcup_k D_k = D$ and $D_k \bigcap D_l = \emptyset$
+\end{itemize}
 \end{frame}
 
 %------------------------------------------------
@@ -286,7 +292,7 @@ We can get the likelihood to look like:
 
 where
 \begin{itemize}
-\item $\bm{Y}_k = \{ Y(\bm(s)_i):\bm(s)_i \in D_k \}$
+\item $\bm{Y}_k = \{ Y(\bm{s}_i):\bm{s}_i \in D_k \}$
 \item $\bm{Y}_{kl} = (\bm{Y}^t_k, \bm{Y}^t_l)^t$
 \item $\bm{X}_{kl} = (\bm{X}^t_k, \bm{X}^t_l)^t$
 \item $\bm{\Sigma}_{kl} = $\[
@@ -301,7 +307,7 @@ where
 %------------------------------------------------
 
 \begin{frame}[fragile]
-In order for this to work well we need to choose blocks carefully. The goal is to minimize the correlation between observations not in a block-pair and maximize the number of blocks simultaneously. \\
+In order for this to work well we need to choose blocks carefully. The goal is to minimize the correlation between observations not in a block-pair and maximize the number of blocks simultaneously. \\~\\
 
 Here are some ideas:
 \begin{itemize}
@@ -314,7 +320,7 @@ Here are some ideas:
 %------------------------------------------------
 
 \begin{frame}[fragile]
-Computationally, the Block Composite Likelihood complexity is of $O(n)$.\\
+Computationally, the Block Composite Likelihood complexity is of $O(n)$.\\~\\
 
 The limit on memory is not an issue since the CL, score, and Hessian calculations are summations over independent calculations for each pair. Since these are independent calculations, they can be parrallelized. 
 \end{frame}
@@ -358,9 +364,9 @@ We typically assume that the mean function is zero, but there are multiple optio
 \end{itemize}
 
 The papers used an isotropic Gaussian correlation structure:
-
-$K_{\theta, \eta}(x,x') = exp\{ -\parallel x-x' \parallel ^2 / \theta \}$ \\
-
+\begin{align*}
+K_{\theta, \eta}(x,x') = exp\{ -\parallel x-x' \parallel ^2 / \theta \}
+\end{align*}
 \end{frame}
 
 %------------------------------------------------
@@ -410,7 +416,7 @@ V_j(x|x_{j+1};\theta) = \frac{(j+1)\psi_j}{j(j-1)}\upsilon_{j+1}(x_j; \theta) \\
 %------------------------------------------------
 
 \begin{frame}[fragile]
-The first part of the Eq \ref{eq:4} estimates the predictive variance at $x$ after we include $x_{j+1}$ in the design and the second part estimates the rate of change in the predictive mean at $x$ weighted by the expectation of the future inverse information after $x_{j+1}$ and $y_{j+1}$ are added to the design. \\
+The first part of the Eq \ref{eq:4} estimates the predictive variance at $x$ after we include $x_{j+1}$ in the design and the second part estimates the rate of change in the predictive mean at $x$ weighted by the expectation of the future inverse information after $x_{j+1}$ and $y_{j+1}$ are added to the design. \\~\\
 
 Actually, minimizing the first term of Eq \ref{eq:4} is the same as minimizing all of Eq \ref{eq:4}. So we just need to maximize:
 \begin{align}
@@ -442,7 +448,7 @@ Putting it all together, we get this algorithm:
 %------------------------------------------------
 
 \begin{frame}[fragile]
-From the algorithm outline, we can see that step 2.b. is the hardest to compute. This is where using the GPU comes in! \\
+From the algorithm outline, we can see that step 2.b. is the hardest to compute. This is where using the GPU comes in! \\~\\
 
 Note that each candidate's($x_{j+1}$) calculations can computed independent of each other. This allows us to give each block it's own candidate. From there we give $j$ threads their own sequence of calculations.
 \end{frame}
@@ -450,7 +456,7 @@ Note that each candidate's($x_{j+1}$) calculations can computed independent of e
 %------------------------------------------------
 
 \begin{frame}[fragile]
-Here are some sample results.\\
+Here are some simulation results.\\
 
 \begin{figure}[h]
 \centering
@@ -470,7 +476,74 @@ Here are some sample results.\\
 \begin{frame}[fragile]
 The writers of the last paper created a \verb|R| package \verb|laGP| in order to easily implement the CUDA, C, and R subroutines.
 
+<<exfunct, echo=FALSE>>=
+library(xtable)
+## examining a particular laGP call from the larger analysis provided
+## in the aGP documentation
+## Simple 2-d test function used in Gramacy & Apley (2014);
+## thanks to Lee, Gramacy, Taddy, and others who have used it before
+f2d <- function(x, y=NULL)
+{
+if(is.null(y)) {
+if(!is.matrix(x)) x <- matrix(x, ncol=2)
+y <- x[,2]; x <- x[,1]
+}
+  g <- function(z)
+return(exp(-(z-1)^2) + exp(-0.8*(z+1)^2) - 0.05*sin(8*(z+0.1)))
+z <- -g(x)*g(y)
+}
+@
+
+<<ex_setup, echo=TRUE>>=
+library(laGP)
+## build up a design with N=~40K locations
+x <- seq(-3, 3, by=0.02)
+X <- as.matrix(expand.grid(x, x))
+Z <- f2d(X)
+## local analysis, first pass
+Xref <- matrix(c(-1.725, 1.725), nrow=TRUE)
+out <- laGP(Xref, 6, 50, X, Z, method="nn")
+## second and pass via ALC, MSPE, and ALC-ray respectively
+out2 <- laGP(Xref, 6, 50, X, Z, d=out$mle$d)
+out2.mspe <- laGP(Xref, 6, 50, X, Z, d=out2$mle$d, method="mspe")
+out2.alcray <- laGP(Xref, 6, 50, X, Z, d=out2$mle$d, method="alcray")
+out2.alccpu <- laGP.R(Xref, 6, 50, X, Z, d=out2$mle$d, method="alc",parallel="omp")
+@
+
+<<exTimes, echo=TRUE>>=
+## compare times
+xtable(data.frame(nn=out$time, alc=out2$time, alcCPU=out2.alccpu$time,
+mspe=out2.mspe$time, alcray=out2.alcray$time))
+@
 \end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+<<explot, echo=FALSE, fig.height=5, fig.width=5>>=
+## look at the different designs
+plot(rbind(X[out2$Xi,], X[out2.mspe$Xi,]), type="n",
+xlab="x1", ylab="x2", main="comparing local designs")
+points(Xref[1], Xref[2], col=2, cex=0.5)
+text(X[out2$Xi,], labels=1:50, cex=0.6)
+text(X[out2.mspe$Xi,], labels=1:50, cex=0.6, col="green")
+text(X[out2.alcray$Xi,], labels=1:50, cex=0.6, col="red")
+legend("topright", c("pass 2 ALC", "pass 3 MSPE", "pass 3 ALCRAY"),
+text.col=c("black", "green", "red"), bty="n")
+@
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+<<exfunct2, echo=TRUE, eval=FALSE>>=
+laGP.R(Xref, 6, 50, X, Z, d=0.1, method="alc",parallel="gpu")#alc.gpu = TRUE)
+@
+\end{frame}
+
+
+
+
 
 
 
