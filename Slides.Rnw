@@ -203,6 +203,11 @@ Global       & Everyone & 5 GB   \\
 \end{tabular}
 \end{table}
 
+For ``good'' GPU usage we want to:
+\begin{itemize}
+  \item Minimize need to access the Global Memory
+  \item If possible `live' in the Thread/Local Memory
+\end{itemize}
 \end{frame}
 
 %------------------------------------------------
@@ -274,7 +279,7 @@ Then we can consider the log-likelihood as:
 
 \item This is a natural compromise for geostatistical models; the blocks allow us a good tradeoff between computational and statistical efficiency
 
-\item The basic idea is to split our sample space ($D$) into $M$ blocks where $\bigcup_k D_k = D$ and $D_k \bigcap D_l = \emptyset$
+\item The basic idea is to split our sample space ($\bm{D}$) into $M$ blocks where $\bigcup_k \bm{D}_k = \bm{D}$ and $\bm{D}_k \bigcap \bm{D}_l = \emptyset$
 \end{itemize}
 \end{frame}
 
@@ -292,7 +297,7 @@ We can get the likelihood to look like:
 
 where
 \begin{itemize}
-\item $\bm{Y}_k = \{ Y(\bm{s}_i):\bm{s}_i \in D_k \}$
+\item $\bm{Y}_k = \{ Y(\bm{s}_i):\bm{s}_i \in \bm{D}_k \}$
 \item $\bm{Y}_{kl} = (\bm{Y}^t_k, \bm{Y}^t_l)^t$
 \item $\bm{X}_{kl} = (\bm{X}^t_k, \bm{X}^t_l)^t$
 \item $\bm{\Sigma}_{kl} = $\[
@@ -373,7 +378,7 @@ K_{\theta, \eta}(x,x') = exp\{ -\parallel x-x' \parallel ^2 / \theta \}
 
 \begin{frame}[fragile]
 \begin{itemize}
-\item Problem is that computations are at $O(N^3)$ 
+\item Problem is that inverse and determinant computations of the correlation matrix $K(,)$ are $O(N^3)$ 
 \item One of the most common ways to handle this is to use sparsity
 \item Gramacy and Apley(2014) sparsity scheme for accurate and fast predictions
 \end{itemize}
@@ -389,6 +394,9 @@ Here is the intuition behind the scheme:
 \item Data far away from prediction point won't have much influence
 \item Use a subdesign $D_n(x) \equiv D_n(X_n(x))$
 \item Most common option is Nearest Neighbors(NN), but it has issues
+      \begin{itemize}
+      \item Stein, Chi, Welty (2004) showed that using a few points away from the point of interest improves prediction and parameter estimation
+      \end{itemize}
 \item A criteria that cycles through possible $D_n(x)$ until optimal is found
 \item This is done with no extra computational cost compared to NN
 \end{itemize}
@@ -400,23 +408,39 @@ Here is the intuition behind the scheme:
 
 We get the criterion(ALC) by minimizing the Emperical Bayes mean-square prediction error (MSPE): \\
 \begin{align}
- J(x_{j+1}, x) = E \{ [ Y(x) - \mu_{j+1}(x|D_{j+1}, \hat{\theta}_{j+1}) ] ^2| D_{j}(x) \} \label{eq:4}
+ J(x_{j+1}, x) &= E \{ [ Y(x) - \mu_{j+1}(x|D_{j+1}, \hat{\theta}_{j+1}) ] ^2| D_{j}(x) \} \\
+ \mu_{j+1}(x|D_{j+1},\hat{\theta}_{j+1}) &= k^{T}(x)K^{-1}Y \nonumber \\
 \end{align}  
-where $j < n$ and $\hat{\theta}_{j+1}$ is the est of $\theta$ on $D_{j+1}$ \\
+where $j < n$, $\hat{\theta}_{j+1}$ is the est of $\theta$ on $D_{j+1}$, and $k^{T}(x)$ is the $N$-vector whose $i_{th}$ component is $K_{\theta}(x,x_i)$, $K = K_{\theta}(x_i,x_j)$ \\~\\
 
-\begin{align}
-J(x_{j+1}, x) \approx V_{j}(x|x_{j+1}, \hat{\theta}_{j}) + \left( \frac{\delta \mu_{j}(x;\theta)}{\delta \theta} \Big|_{\theta = \hat{\theta}_j} \right) ^2 / G_{j+1}(\hat{\theta}_j)
-\end{align}
-\begin{multline}
-V_j(x|x_{j+1};\theta) = \frac{(j+1)\psi_j}{j(j-1)}\upsilon_{j+1}(x_j; \theta) \\
-\text{where } \upsilon_{j+1}(x_j; \theta) = \big[ K_{j+1}(x,x) - k^{T}_{j+1}(x)K^{-1}_{j+1}k^{T}_{j+1}(x) \big]
-\end{multline}
 \end{frame}
 
 %------------------------------------------------
 
 \begin{frame}[fragile]
-The first part of the Eq \ref{eq:4} estimates the predictive variance at $x$ after we include $x_{j+1}$ in the design and the second part estimates the rate of change in the predictive mean at $x$ weighted by the expectation of the future inverse information after $x_{j+1}$ and $y_{j+1}$ are added to the design. \\~\\
+\begin{align}
+J(x_{j+1}, x) \approx V_{j}(x|x_{j+1}, \hat{\theta}_{j}) + \left( \frac{\delta \mu_{j}(x;\theta)}{\delta \theta} \Big|_{\theta = \hat{\theta}_j} \right) ^2 / \mathcal{G}_{j+1}(\hat{\theta}_j) \label{eq:papep4}
+\end{align}
+
+This term is the expected future inverse Fisher's information:
+\begin{align*}
+\mathcal{G}_{j+1}(\hat{\theta}_j) &= -\ell''(Y_j;\theta) + E \{ - \frac{\partial^2 \ell_j (y_{j+1};\theta)}{\partial \theta^2} \shortmid D_{j}; \theta \} \\~\\
+\end{align*}
+
+This term is the estimate of the predictive variance at $X$ after $X_{j+1}$ is added into the design:
+\begin{align*}
+V_j(x|x_{j+1};\theta) &= \frac{(j+1)\psi_j}{j(j-1)}\upsilon_{j+1}(x_j; \theta) \\
+%
+\text{where }\upsilon_{j+1}(x_j; \theta) &= \big[ K_{j+1}(x,x) - k^{T}_{j+1}(x)K^{-1}_{j+1}k^{T}_{j+1}(x) \big] \\
+%
+\psi &= Y^{T}K^{-1}Y \\
+\end{align*}
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+The first part of the Eq \ref{eq:papeq4} estimates the predictive variance at $x$ after we include $x_{j+1}$ in the design and the second part estimates the rate of change in the predictive mean at $x$ weighted by the expectation of the future inverse information after $x_{j+1}$ and $y_{j+1}$ are added to the design. \\~\\
 
 Actually, minimizing the first term of Eq \ref{eq:4} is the same as minimizing all of Eq \ref{eq:4}. So we just need to maximize:
 \begin{align}
@@ -439,7 +463,7 @@ Putting it all together, we get this algorithm:
  \text{then update } D_{j+1}(x,\theta_x) = D_j(x,\theta_x) \cup (x_{j+1}, y(x_{j+1}))
  \end{align*}
  \end{enumerate}
-\item Independently, calculate $\hat{\theta}_n(x)|D_n(x,\theta_x$. Set $\theta_x = \hat{\theta}_n(x)$
+\item Independently, calculate $\hat{\theta}_n(x)|D_n(x,\theta_x$). Set $\theta_x = \hat{\theta}_n(x)$
 \item Repeat steps 2-3
 \item Output predictions $Y(x)|D_n(x,\theta_x)$
 \end{enumerate}
@@ -450,7 +474,7 @@ Putting it all together, we get this algorithm:
 \begin{frame}[fragile]
 From the algorithm outline, we can see that step 2.b. is the hardest to compute. This is where using the GPU comes in! \\~\\
 
-Note that each candidate's($x_{j+1}$) calculations can computed independent of each other. This allows us to give each block it's own candidate. From there we give $j$ threads their own sequence of calculations.
+Note that each candidate's ($x_{j+1}$) calculations can computed independent of each other. This allows us to give each block it's own candidate. From there we give $j$ threads their own sequence of calculations.
 \end{frame}
 
 %------------------------------------------------
@@ -478,6 +502,7 @@ The writers of the last paper created a \verb|R| package \verb|laGP| in order to
 
 <<exfunct, echo=FALSE>>=
 library(xtable)
+library(animation)
 ## examining a particular laGP call from the larger analysis provided
 ## in the aGP documentation
 ## Simple 2-d test function used in Gramacy & Apley (2014);
@@ -536,23 +561,58 @@ xtable(data.frame(nn=out$time,
 %------------------------------------------------
 
 \begin{frame}[fragile]
+<<exgif, echo=FALSE, eval=FALSE>>=
+saveGIF({
+  for(i in 1:500){
+    plot(rbind(X[out2$Xi,], X[out2$Xi,]), type="n",
+         xlab="x1", ylab="x2", main="comparing local designs")
+    points(Xref[1], Xref[2], col=2, cex=0.5)
+    text(X[out$Xi,], labels=1:500, cex=0.6)
+    text(X[out2$Xi,i], labels=i, cex=0.6, col="red")
+    legend("topright", c("NN", "ALC"),
+           text.col=c("black", "red"), bty="n")
+  }
+}, movie.name = "ALC.gif")
+@
+
 <<explot, echo=FALSE, fig.height=5, fig.width=7>>=
 ## look at the different designs
 plot(rbind(X[out2$Xi,], X[out2$Xi,]), type="n",
-xlab="x1", ylab="x2", main="comparing local designs")
+     xlab="x1", ylab="x2", main="comparing local designs")
 points(Xref[1], Xref[2], col=2, cex=0.5)
 text(X[out$Xi,], labels=1:500, cex=0.6)
 text(X[out2$Xi,], labels=1:500, cex=0.6, col="red")
 legend("topright", c("NN", "ALC"),
-text.col=c("black", "red"), bty="n")
+       text.col=c("black", "red"), bty="n")
+@
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}
+<<SimStudy, echo=FALSE, fig.width=7, fig.height=5>>=
+#
 @
 \end{frame}
 
 
 
 
+%------------------------------------------------
+\section{Discussion}
+%------------------------------------------------
 
-
+\begin{frame}
+\begin{itemize}
+  \item These two methods are contradicting ideas
+  \begin{itemize}
+    \item One method says that points nearest are most important
+    \item One method says that you need to include some points outside of the nearest points
+  \end{itemize}
+  \item It is not clear how much better it is to use ALC vs NN
+  \item \bm{ADD MORE HERE}
+\end{frame}
+\end{frame}
 
 
 \end{document}
