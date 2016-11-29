@@ -76,7 +76,7 @@
 %\setbeamertemplate{navigation symbols}{} % To remove the navigation symbols from the bottom of all slides uncomment this line
 }
 
-\usepackage{graphicx, copyrightbox, bm, amsmath}
+\usepackage{graphicx, copyrightbox, bm, amsmath,verbatim}
 \usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
 \makeatletter
 \newsavebox{\mybox}\newsavebox{\mysim}
@@ -474,7 +474,7 @@ Here are some simulation results.\\
 %------------------------------------------------
 
 \begin{frame}[fragile]
-The writers of the last paper created a \verb|R| package \verb|laGP| in order to easily implement the CUDA, C, and R subroutines.
+The writers of the last paper created a \verb|R| package \verb|laGP| in order to easily implement the CUDA, C, and R subroutines. \\~\\
 
 <<exfunct, echo=FALSE>>=
 library(xtable)
@@ -494,52 +494,60 @@ z <- -g(x)*g(y)
 }
 @
 
-<<ex_setup, echo=TRUE>>=
+\begin{verbatim}
+laGP(Xref, start, end, X, Z, d = NULL, g = 1/10000,
+     method = c("alc", "alcray", "mspe", "nn", "fish"), 
+     Xi.ret = TRUE,
+     close = min(1000*if(method == "alcray") 10 else 1, nrow(X)), 
+     alc.gpu = FALSE, numrays = ncol(X), 
+     rect = NULL, verb = 0)
+\end{verbatim}
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+<<ex, echo=TRUE, cache=TRUE>>=
 library(laGP)
 ## build up a design with N=~40K locations
-x <- seq(-3, 3, by=0.02)
+x <- seq(-2, 2, by=0.02)
 X <- as.matrix(expand.grid(x, x))
 Z <- f2d(X)
 ## local analysis, first pass
 Xref <- matrix(c(-1.725, 1.725), nrow=TRUE)
-out <- laGP(Xref, 6, 50, X, Z, method="nn")
+out <- laGP(Xref, 6, 500, X, Z, method="nn")
 ## second and pass via ALC, MSPE, and ALC-ray respectively
-out2 <- laGP(Xref, 6, 50, X, Z, d=out$mle$d)
-out2.mspe <- laGP(Xref, 6, 50, X, Z, d=out2$mle$d, method="mspe")
-out2.alcray <- laGP(Xref, 6, 50, X, Z, d=out2$mle$d, method="alcray")
-out2.alccpu <- laGP.R(Xref, 6, 50, X, Z, d=out2$mle$d, method="alc",parallel="omp")
+out2 <- laGP(Xref, 6, 500, X, Z, d=out$mle$d, method="alc", alc.gpu=TRUE)
+out2.alccpu <- laGP.R(Xref, 6, 500, X, Z, d=out2$mle$d, method="alc", parallel="none")
+out2.alcgpu <- laGP.R(Xref, 6, 500, X, Z, d=out2$mle$d, method="alc", parallel="gpu")
 @
 
-<<exTimes, echo=TRUE>>=
+
+
+<<exTimes, echo=FALSE, results='asis'>>=
 ## compare times
-xtable(data.frame(nn=out$time, alc=out2$time, alcCPU=out2.alccpu$time,
-mspe=out2.mspe$time, alcray=out2.alcray$time))
+xtable(data.frame(nn=out$time,
+                         alc=out2$time,
+                         alcCPU=out2.alccpu$time,
+                         alcGPU=out2.alcgpu$time))
 @
 \end{frame}
 
 %------------------------------------------------
 
 \begin{frame}[fragile]
-<<explot, echo=FALSE, fig.height=5, fig.width=5>>=
+<<explot, echo=FALSE, fig.height=5, fig.width=7>>=
 ## look at the different designs
-plot(rbind(X[out2$Xi,], X[out2.mspe$Xi,]), type="n",
+plot(rbind(X[out2$Xi,], X[out2$Xi,]), type="n",
 xlab="x1", ylab="x2", main="comparing local designs")
 points(Xref[1], Xref[2], col=2, cex=0.5)
-text(X[out2$Xi,], labels=1:50, cex=0.6)
-text(X[out2.mspe$Xi,], labels=1:50, cex=0.6, col="green")
-text(X[out2.alcray$Xi,], labels=1:50, cex=0.6, col="red")
-legend("topright", c("pass 2 ALC", "pass 3 MSPE", "pass 3 ALCRAY"),
-text.col=c("black", "green", "red"), bty="n")
+text(X[out$Xi,], labels=1:500, cex=0.6)
+text(X[out2$Xi,], labels=1:500, cex=0.6, col="red")
+legend("topright", c("NN", "ALC"),
+text.col=c("black", "red"), bty="n")
 @
 \end{frame}
 
-%------------------------------------------------
-
-\begin{frame}[fragile]
-<<exfunct2, echo=TRUE, eval=FALSE>>=
-laGP.R(Xref, 6, 50, X, Z, d=0.1, method="alc",parallel="gpu")#alc.gpu = TRUE)
-@
-\end{frame}
 
 
 
