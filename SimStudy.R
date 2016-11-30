@@ -10,7 +10,7 @@ set.seed(12345)
 
 ## build up a design with N=~40K locations
 n <- 10
-x.star <- seq(-n, n, by=1)
+x.star <- seq(-n, n, length=30)
 X <- as.matrix(expand.grid(x.star, x.star))
 #plot(X[,1],X[,2])
 
@@ -34,12 +34,12 @@ getresp <- function(x,theta){
 }
 
 ## local analysis, first pass
-Xref <- matrix(c(-2, 2), nrow=TRUE)
+Xref <- matrix(X[400,], nrow=TRUE)
 
 
 ## Initialize
 iter        <- 100
-theta       <- seq(0.01, 10, length=iter)
+theta       <- seq(1, 10, length=iter)
 truepred    <- rep(NA, iter)
 nnThetaEst  <- rep(NA, iter)
 nnPred      <- rep(NA, iter)
@@ -49,7 +49,7 @@ alcPred     <- rep(NA, iter)
 for(i in 1:length(theta)){
   Z0 <- getresp(X, theta[i])$y
   
-  truepred[i]    <- Z0[261]
+  truepred[i]    <- Z0[400]
   nngp           <- laGP(Xref, 6, 100, X, Z0, method="nn")
   nnThetaEst[i]  <- nngp$mle$d
   nnPred[i]      <- nngp$mean
