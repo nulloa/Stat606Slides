@@ -508,7 +508,7 @@ Here are some simulation results.\\
 \begin{frame}[fragile]
 The writers of the last paper created a \verb|R| package \verb|laGP| in order to easily implement the CUDA, C, and R subroutines. \\~\\
 
-<<exfunct, echo=FALSE>>=
+<<exfunct, echo=FALSE, message=FALSE, warning=FALSE>>=
 library(xtable)
 library(animation)
 library(ggplot2)
@@ -600,19 +600,25 @@ legend("topright", c("NN", "ALC"),
 
 %------------------------------------------------
 
-\begin{frame}
-<<SimStudyplot1, echo=FALSE, fig.width=7, fig.height=5>>=
-load("SimRes.RData")
-dat <- melt(SimRes)
-sub1 <- subset(dat, Var2=="theta"|Var2=="nnThetaEst"|Var2=="alcThetaEst")
-ggplot(data=sub1, aes(x=Var1, y=value, color=Var2)) + geom_line()
-@
+\begin{frame}[fragile]
+Show GIF
 \end{frame}
 
 %------------------------------------------------
 
+%\begin{frame}
+%<<SimStudyplot1, echo=FALSE, fig.width=7, fig.height=4>>=
+%sub1 <- subset(dat, Var2=="theta"|Var2=="nnThetaEst"|Var2=="alcThetaEst")
+%ggplot(data=sub1, aes(x=Var1, y=value, color=Var2)) + geom_line()
+%@
+%\end{frame}
+
+%------------------------------------------------
+
 \begin{frame}
-<<SimStudyplot2, echo=FALSE, fig.width=7, fig.height=5>>=
+<<SimStudyplot2, echo=FALSE, fig.width=7, fig.height=4>>=
+load("SimRes.RData")
+dat <- melt(SimRes)
 sub2 <- subset(dat,Var2=="truepred"|Var2=="nnPred"|Var2=="alcPred")
 ggplot(data=sub2, aes(x=Var1, y=value, color=Var2)) + geom_line()
 @
@@ -630,8 +636,8 @@ ggplot(data=sub2, aes(x=Var1, y=value, color=Var2)) + geom_line()
     \item One method says that you need to include some points outside of the nearest points
   \end{itemize}
   \item It is not clear how much better it is to use ALC vs NN
-  \item Clearly, ALC is as good as NN for prediction, but they seem off estimation of correlation
-\end{frame}
+  \item Clearly, ALC is as good as NN for prediction
+\end{itemize}
 \end{frame}
 
 
