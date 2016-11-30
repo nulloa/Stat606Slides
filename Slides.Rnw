@@ -590,17 +590,20 @@ legend("topright", c("NN", "ALC"),
 %------------------------------------------------
 
 \begin{frame}
-<<SimStudy, echo=FALSE, fig.width=7, fig.height=5>>=
+<<SimStudyplot1, echo=FALSE, fig.width=7, fig.height=5>>=
 load("SimRes.RData")
 dat <- melt(SimRes)
-head(dat)
 ggplot(data=subset(dat,Var2==c("theta", "nnThetaEst", "alcThetaEst")), aes(x=Var1, y=value, color=Var2)) + geom_line()
-ggplot(data=subset(dat,Var2==c("truepred", "nnPred", "alcPred")), aes(x=Var1, y=value, color=Var2)) + geom_line()
 @
 \end{frame}
 
+%------------------------------------------------
 
-
+\begin{frame}
+<<SimStudyplot2, echo=FALSE, fig.width=7, fig.height=5>>=
+ggplot(data=subset(dat,Var2==c("truepred", "nnPred", "alcPred")), aes(x=Var1, y=value, color=Var2)) + geom_line()
+@
+\end{frame}
 
 %------------------------------------------------
 \section{Discussion}
