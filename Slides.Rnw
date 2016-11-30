@@ -442,10 +442,18 @@ V_j(x|x_{j+1};\theta) &= \frac{(j+1)\psi_j}{j(j-1)}\upsilon_{j+1}(x_j; \theta) \
 \begin{frame}[fragile]
 The first part of the Eq \ref{eq:papeq4} estimates the predictive variance at $x$ after we include $x_{j+1}$ in the design and the second part estimates the rate of change in the predictive mean at $x$ weighted by the expectation of the future inverse information after $x_{j+1}$ and $y_{j+1}$ are added to the design. \\~\\
 
-Actually, minimizing the first term of Eq \ref{eq:4} is the same as minimizing all of Eq \ref{eq:4}. So we just need to maximize:
+Actually, minimizing the first term of Eq \ref{eq:4} is sufficient to minimize the whole equation. This is because:
+\begin{itemize}
+\item Found the contribution of second term to be small
+\item Including it led to smaller designs
+\item Computationally, a lot quicker since no derivatives \\~\\
+\end{itemize}
+
+So we just need to maximize:
 \begin{align}
 \upsilon_{j}(x; \theta) - \upsilon_{j+1}(x; \theta)
 \end{align}
+
 \end{frame}
 
 %------------------------------------------------
