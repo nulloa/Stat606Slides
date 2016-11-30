@@ -9,7 +9,8 @@ set.seed(12345)
 
 
 ## build up a design with N=~40K locations
-x.star <- seq(-2, 2, length=25)
+n <- 10
+x.star <- seq(-n, n, length=50)
 X <- as.matrix(expand.grid(x.star, x.star))
 
 calcSigma <- function(X1,X2,l=1){
