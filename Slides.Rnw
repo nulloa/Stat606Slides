@@ -266,7 +266,7 @@ Consider the data at $n$ loacations then we can consider our model like this:
 
 Then we can consider the log-likelihood as:
 \begin{align}
-\ell (\bm{Y;\beta,\theta}) = -\frac{1}{2}log|\sigma| - \frac{1}{2}(\bm{Y} - \bm{X\beta})^{t}\Sigma^{-1}(\bm{Y} - \bm{X\beta})
+\ell (\bm{Y;\beta,\theta}) = -\frac{1}{2}log|\Sigma| - \frac{1}{2}(\bm{Y} - \bm{X\beta})^{t}\Sigma^{-1}(\bm{Y} - \bm{X\beta})
 \end{align}
 
 \end{frame}
@@ -290,23 +290,22 @@ We can get the likelihood to look like:
 
 \begin{equation} \label{eq1}
 \begin{split}
-\ell(\bm{Y};\bm{\beta},\bm{\theta}) & = \sum_{k=1}^{M-1} \sum_{l>k} \ell(\bm{Y}_;\bm{\beta},\bm{\theta}) \\
+\ell(\bm{Y};\bm{\beta},\bm{\theta}) & = \sum_{k=1}^{M-1} \sum_{l>k} \ell(\bm{Y}_{kl};\bm{\beta},\bm{\theta}) \\
                                     & = \sum_{k=1}^{M-1} \sum_{l>k} \big[ -\frac{1}{2}\log|\Sigma_{kl}| -\frac{1}{2}(\bm{Y_{kl}} - \bm{X_{kl}\beta})^{t}\Sigma^{-1}_{kl}(\bm{Y_{kl}} - \bm{X_{kl}\beta}) \big]
 \end{split}
 \end{equation}
 
 where
-\begin{itemize}
-\item $\bm{Y}_k = \{ Y(\bm{s}_i):\bm{s}_i \in \bm{D}_k \}$
-\item $\bm{Y}_{kl} = (\bm{Y}^t_k, \bm{Y}^t_l)^t$
-\item $\bm{X}_{kl} = (\bm{X}^t_k, \bm{X}^t_l)^t$
-\item $\bm{\Sigma}_{kl} = $\[
-\begin{bmatrix}
+\begin{align*}
+\bm{Y}_k &= \{ Y(\bm{s}_i):\bm{s}_i \in \bm{D}_k \} \\
+\bm{Y}_{kl} &= (\bm{Y}^t_k, \bm{Y}^t_l)^t \\
+\bm{X}_{kl} &= (\bm{X}^t_k, \bm{X}^t_l)^t \\
+\bm{\Sigma}_{kl} &= \begin{bmatrix}
     \bm{\Sigma}_{kl}(1,1)  & \bm{\Sigma}_{kl}(1,2) \\
     \bm{\Sigma}_{kl}(2,1)  & \bm{\Sigma}_{kl}(2,2)
-\end{bmatrix}
-\]
-\end{itemize}
+\end{bmatrix} \\
+\Sigma_{kl}(1,1) &\text{ is the }n_k \times n_k \text{ covariance matrix of }\bm{Y}_{k} \\
+\end{align*}
 \end{frame}
 
 %------------------------------------------------
@@ -338,7 +337,7 @@ Here are some sample results.\\
 \begin{figure}[h]
 \centering
 \includegraphics[height=0.40\textheight]{gpucpucomparepap1.png}
-\caption{This graphics compares CPU-only $\&$ GPU-only times for ALC calculations at $n_{cand}=60000$ ($\sim$ max number of blocks) candidate locations while changing $n$ (sample size).}
+\caption{Computation times for a single Fisher-scoring iteration on NVIDIA GPU for various data sizes per block. Computation times on a CPU and GPU for a single Fisher-scoring iteration for various block sizes at two different sample sizes.}
 \end{figure}
 \end{frame}
 
@@ -354,7 +353,7 @@ subset of them have a joint Gaussian distribution
 \begin{itemize}
 \item Extend multivariate Gaussian distributions to infinite dimensionality e.g. $\bm{y} =  \{ y_1 , \ldots , y_n \}$ as a single point from a $n$-dim Multivariate Normal
 \item Fully defined by a mean function and a covariance function
-\item GP Regression is often used in computer emulation i.e. a distribution $Y(x)|D_N$ for new $x$ given simulated data $D_N$ $(p(y(x)|D_N, K_\theta))$
+\item GP Regression is often used in computer emulation i.e. a distribution $Y(x)|D_N$ for new $x$ given simulated data $D_N$, $p(y(x)|D_N, K_\theta)$
 \end{itemize}
 \end{frame}
 
@@ -419,12 +418,12 @@ where $j < n$, $\hat{\theta}_{j+1}$ is the est of $\theta$ on $D_{j+1}$, and $k^
 
 \begin{frame}[fragile]
 \begin{align}
-J(x_{j+1}, x) \approx V_{j}(x|x_{j+1}, \hat{\theta}_{j}) + \left( \frac{\delta \mu_{j}(x;\theta)}{\delta \theta} \Big|_{\theta = \hat{\theta}_j} \right) ^2 / \mathcal{G}_{j+1}(\hat{\theta}_j) \label{eq:papep4}
+J(x_{j+1}, x) \approx V_{j}(x|x_{j+1}, \hat{\theta}_{j}) + \left( \frac{\delta \mu_{j}(x;\theta)}{\delta \theta} \Big|_{\theta = \hat{\theta}_j} \right) ^2 / \mathcal{G}_{j+1}(\hat{\theta}_j) \label{eq:papeq4}
 \end{align}
 
 This term is the expected future inverse Fisher's information:
 \begin{align*}
-\mathcal{G}_{j+1}(\hat{\theta}_j) &= -\ell''(Y_j;\theta) + E \{ - \frac{\partial^2 \ell_j (y_{j+1};\theta)}{\partial \theta^2} \shortmid D_{j}; \theta \} \\~\\
+\mathcal{G}_{j+1}(\hat{\theta}_j) &= -\ell''(Y_j;\theta) + E \{ - \frac{\partial^2 \ell_j (y_{j+1};\theta)}{\partial \theta^2} \shortmid D_{j}; \theta \}
 \end{align*}
 
 This term is the estimate of the predictive variance at $X$ after $X_{j+1}$ is added into the design:
@@ -442,7 +441,7 @@ V_j(x|x_{j+1};\theta) &= \frac{(j+1)\psi_j}{j(j-1)}\upsilon_{j+1}(x_j; \theta) \
 \begin{frame}[fragile]
 The first part of the Eq \ref{eq:papeq4} estimates the predictive variance at $x$ after we include $x_{j+1}$ in the design and the second part estimates the rate of change in the predictive mean at $x$ weighted by the expectation of the future inverse information after $x_{j+1}$ and $y_{j+1}$ are added to the design. \\~\\
 
-Actually, minimizing the first term of Eq \ref{eq:4} is sufficient to minimize the whole equation. This is because:
+Actually, minimizing the first term of Eq \ref{eq:papeq4} is sufficient to minimize the whole equation. This is because:
 \begin{itemize}
 \item Found the contribution of second term to be small
 \item Including it led to smaller designs
@@ -630,13 +629,13 @@ ggplot(data=sub2, aes(x=Var1, y=value, color=Var2)) + geom_line()
 
 \begin{frame}
 \begin{itemize}
-  \item These two methods are contradicting ideas
+  \item Clearly, ALC is as good as NN for prediction
+  \item It is not clear how much better it is to use ALC vs NN \\~\\
+  \item These two examples of GPU usage have contradicting ideas
   \begin{itemize}
     \item One method says that points nearest are most important
     \item One method says that you need to include some points outside of the nearest points
   \end{itemize}
-  \item It is not clear how much better it is to use ALC vs NN
-  \item Clearly, ALC is as good as NN for prediction
 \end{itemize}
 \end{frame}
 
