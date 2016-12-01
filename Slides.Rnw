@@ -90,7 +90,7 @@
 %	TITLE PAGE
 %----------------------------------------------------------------------------------------
 
-\title[Stat 606]{GPU usage in Spatial Models} % The short title appears at the bottom of every slide, the full title is only on the title page
+\title[Stat 606]{GPU usage within Spatial Models} % The short title appears at the bottom of every slide, the full title is only on the title page
 
 \author{Nehemias Ulloa} % Your name
 \institute[ISU] % Your institution as it will appear on the bottom of every slide, may be shorthand to save space
@@ -183,7 +183,7 @@ We would like to run as many blocks as possible on the SM but that depends on tw
 \item Number of registers required by each thread - We have some control \\~\\
 \end{itemize}
 
-Ultimately the number of SMs and blocks per SM is defined by the hardware of the GPU. In the paper's example their card had 16 SMs and allowed multiple blocks per SM. \\
+Ultimately the number of SMs and blocks per SM is defined by the hardware of the GPU. In the second paper's example their card had 16 SMs and allowed multiple blocks per SM. \\
 \end{frame}
 
 %------------------------------------------------
@@ -343,7 +343,7 @@ Here are some sample results.\\
 
 
 %------------------------------------------------
-\subsection{Gaussian Process Regression}
+\subsection{Approximate Gaussian Process Regression}
 %------------------------------------------------
 
 \begin{frame}[fragile]
@@ -542,7 +542,7 @@ laGP(Xref, start, end, X, Z, d = NULL, g = 1/10000,
 %------------------------------------------------
 
 \begin{frame}[fragile]
-<<ex, echo=TRUE, cache=TRUE>>=
+<<ex, echo=TRUE, eval=FALSE>>=
 library(laGP)
 ## build up a design with N=~40K locations
 x <- seq(-2, 2, by=0.02)
@@ -557,7 +557,12 @@ out2.alccpu <- laGP.R(Xref, 6, 100, X, Z, d=out2$mle$d, method="alc", parallel="
 out2.alcgpu <- laGP.R(Xref, 6, 100, X, Z, d=out2$mle$d, method="alc", parallel="gpu")
 @
 
-
+<<savedat, echo=FALSE, eval=FALSE>>=
+save.image(file="SlideRes.RData")
+@
+<<loadslidedat,echo=FALSE>>=
+load("SlideRes.RData")
+@
 
 <<exTimes, echo=FALSE, results='asis'>>=
 ## compare times
@@ -615,15 +620,29 @@ Show GIF
 %------------------------------------------------
 
 \begin{frame}
-<<SimStudyplot2, echo=FALSE, fig.width=7, fig.height=4>>=
+<<SimStudyplot2, echo=FALSE, fig.width=7, fig.height=4, warning=FALSE, message=FALSE>>=
 load("SimRes.RData")
 dat <- melt(SimRes)
 sub2 <- subset(dat,Var2=="truepred"|Var2=="nnPred"|Var2=="alcPred")
 sub2$Type <- factor(sub2$Var2)
 levels(sub2$Type) <- c("True", "NN", "ALC")
-ggplot(data=sub2, aes(x=Var1, y=value, color=Type)) + geom_line() + labs(x="Theta", y="Prediction")
+ggplot(data=sub2, aes(x=Var1, y=value, color=Type)) + geom_line(aes(linetype=Type)) + labs(x="Theta", y="Prediction")
 @
 \end{frame}
+
+%------------------------------------------------
+
+\begin{frame}
+<<SimStudyplot3, echo=FALSE, fig.width=7, fig.height=4, warning=FALSE, message=FALSE>>=
+sub3 <- data.frame(NN=(subset(sub2, Type=="True")$value-subset(sub2, Type=="NN")$value),
+                   ALC=(subset(sub2, Type=="True")$value-subset(sub2, Type=="ALC")$value))
+sub3 <- cbind(melt(sub3),Var1=c(1:100))
+ggplot(data=sub3, aes(x=Var1, y=value)) + geom_point(aes(color=variable)) + labs(x="Theta", y="residuals")+ scale_fill_manual(values=c("green", "blue"))
+@
+\end{frame}
+
+
+
 
 %------------------------------------------------
 \section{Discussion}
@@ -631,13 +650,14 @@ ggplot(data=sub2, aes(x=Var1, y=value, color=Type)) + geom_line() + labs(x="Thet
 
 \begin{frame}
 \begin{itemize}
-  \item Clearly, ALC is as good as NN for prediction
+  \item ALC seems decent for prediction, but NN seems better
   \item It is not clear how much better it is to use ALC vs NN \\~\\
   \item These two examples of GPU usage have contradicting ideas
   \begin{itemize}
     \item One method says that points nearest are most important
     \item One method says that you need to include some points outside of the nearest points
   \end{itemize}
+  \item Although it is important to note they set out for different purposes: estimation and prediction
 \end{itemize}
 \end{frame}
 
