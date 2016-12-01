@@ -619,7 +619,9 @@ Show GIF
 load("SimRes.RData")
 dat <- melt(SimRes)
 sub2 <- subset(dat,Var2=="truepred"|Var2=="nnPred"|Var2=="alcPred")
-ggplot(data=sub2, aes(x=Var1, y=value, color=Var2)) + geom_line()
+sub2$Type <- factor(sub2$Var2)
+levels(sub2$Type) <- c("True", "NN", "ALC")
+ggplot(data=sub2, aes(x=Var1, y=value, color=Type)) + geom_line() + labs(x="Theta", y="Prediction")
 @
 \end{frame}
 
